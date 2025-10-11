@@ -891,15 +891,15 @@ const Dashboard = () => {
         {selectedFileName && (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-              <SafetyGauge score={82} />
+              {/* <SafetyGauge score={82} />
               <EventsChart data={eventData} showPieChart />
-              <SafetyTrendChart data={trendData} />
+              <SafetyTrendChart data={trendData} /> */}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <MetricCard
+                  {/* <MetricCard
                     title="Overspeed Events"
                     value={4}
                     unit="events"
@@ -907,8 +907,8 @@ const Dashboard = () => {
                     trend={-15}
                     color="events"
                     description="Speed limit violations detected"
-                  />
-                  <MetricCard
+                  /> */}
+                  {/* <MetricCard
                     title="Harsh Braking"
                     value={2}
                     unit="events"
@@ -916,10 +916,10 @@ const Dashboard = () => {
                     trend={-25}
                     color="braking"
                     description="Sudden deceleration events"
-                  />
+                  /> */}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <MetricCard
+                  {/* <MetricCard
                     title="Swerving"
                     value={1}
                     unit="events"
@@ -927,8 +927,8 @@ const Dashboard = () => {
                     trend={-50}
                     color="swerving"
                     description="Sharp steering maneuvers"
-                  />
-                  <MetricCard
+                  /> */}
+                  {/* <MetricCard
                     title="Night Rides"
                     value={0}
                     unit="trips"
@@ -936,8 +936,8 @@ const Dashboard = () => {
                     trend={0}
                     color="night"
                     description="Trips during night hours"
-                  />
-                  <MetricCard
+                  /> */}
+                  {/* <MetricCard
                     title="Accelerometer"
                     value={latestAx}
                     unit="m/s²"
@@ -950,8 +950,8 @@ const Dashboard = () => {
                         AZ: {latestAz.toFixed(2)}
                       </div>
                     }
-                  />
-                  <MetricCard
+                  /> */}
+                  {/* <MetricCard
                     title="Gyroscope"
                     value={latestGx}
                     unit="°/s"
@@ -964,13 +964,13 @@ const Dashboard = () => {
                         GZ: {latestGz.toFixed(2)}
                       </div>
                     }
-                  />
+                  /> */}
                 </div>
               </div>
 
-              <div className="space-y-6">
+              {/* <div className="space-y-6">
                 <SpeedChart data={speedData} />
-              </div>
+              </div> */}
             </div>
 
             <div className="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -993,8 +993,60 @@ const Dashboard = () => {
                 title="Gyroscope Data (GX, GY, GZ)"
               />
             </div>
-            <GpsChart data={gpsData} />
-            <SpeedChart1 data={speedData} />
+            {/* <div className="space-y-6">
+                <SpeedChart data={speedData} />
+              </div> */}
+              <SpeedChart1 data={speedData} />
+            <div className="grid grid-cols-2 gap-4">
+                  {/* <MetricCard
+                    title="Swerving"
+                    value={1}
+                    unit="events"
+                    icon={NavIcon}
+                    trend={-50}
+                    color="swerving"
+                    description="Sharp steering maneuvers"
+                  /> */}
+                  {/* <MetricCard
+                    title="Night Rides"
+                    value={0}
+                    unit="trips"
+                    icon={Moon}
+                    trend={0}
+                    color="night"
+                    description="Trips during night hours"
+                  /> */}
+                  <MetricCard
+                    title="Accelerometer"
+                    value={latestAx}
+                    unit="m/s²"
+                    icon={Gauge}
+                    color="speed"
+                    description={
+                      <div>
+                        AX: {latestAx.toFixed(2)} <br />
+                        AY: {latestAy.toFixed(2)} <br />
+                        AZ: {latestAz.toFixed(2)}
+                      </div>
+                    }
+                  /> 
+                   <MetricCard
+                    title="Gyroscope"
+                    value={latestGx}
+                    unit="°/s"
+                    icon={NavIcon}
+                    color="events"
+                    description={
+                      <div>
+                        GX: {latestGx.toFixed(2)} <br />
+                        GY: {latestGy.toFixed(2)} <br />
+                        GZ: {latestGz.toFixed(2)}
+                      </div>
+                    }
+                  /> 
+                </div>
+            {/* <GpsChart data={gpsData} /> */}
+            {/* <SpeedChart1 data={speedData} /> */}
           </>
         )}
       </div>
