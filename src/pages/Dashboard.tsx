@@ -43,6 +43,9 @@ const Dashboard = () => {
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isStartingRide, setIsStartingRide] = useState(false);
+const [potholes, setPotholes] = useState<any[]>([]);
+const [loadingPotholes, setLoadingPotholes] = useState(false);
+const [sortOrder, setSortOrder] = useState("newest");
 
   const [speedData, setSpeedData] = useState<any[]>([]);
   const [eventData, setEventData] = useState<any[]>([]);
@@ -238,6 +241,38 @@ const Dashboard = () => {
       setIsLoadingData(false);
     }
   };
+useEffect(() => {
+  if (!selectedFileId || !riderId) return;
+
+  const fetchPotholes = async () => {
+    try {
+      setLoadingPotholes(true);
+
+      const { data, error } = await supabase
+        .from("pothole_events")
+        .select("*")
+        .eq("rider_id", riderId)
+        .eq("file_id", selectedFileId)
+        .order("detected_at", { ascending: false });
+
+      if (error) throw error;
+
+      setPotholes(data || []);
+    } catch (err) {
+      console.error("Error fetching potholes:", err);
+      toast({
+        title: "Error",
+        description: "Could not fetch pothole events.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPotholes(false);
+    }
+  };
+
+  fetchPotholes();
+}, [selectedFileId, riderId]);
+
 
   const handleStartRide = async () => {
     if (!riderId) {
@@ -442,7 +477,7 @@ const Dashboard = () => {
                 <SpeedChart data={speedData} />
               </div> */}
             </div>
-
+ 
             <div className="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
               <AccelerometerChart
                 data={axData.map((d, i) => ({
@@ -517,6 +552,65 @@ const Dashboard = () => {
                 </div>
             {/* <GpsChart data={gpsData} /> */}
             {/* <SpeedChart1 data={speedData} /> */}
+            <div className="mt-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+
+  <MetricCard
+    title="Pothole Events"
+    value={potholes.length}
+    unit="events"
+    icon={AlertTriangle}
+    color="events"
+    description={
+      <div className="space-y-2">
+        
+        {/* Sort dropdown */}
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-semibold text-foreground text-xs">Sort:</span>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            className="bg-background border px-2 py-1 rounded text-xs"
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+          </select>
+        </div>
+
+        {/* Condition checks */}
+        {loadingPotholes ? (
+          <p className="text-muted-foreground text-xs">Loading...</p>
+        ) : potholes.length === 0 ? (
+          <p className="text-muted-foreground text-xs">No potholes detected.</p>
+        ) : (
+          <ul className="max-h-40 overflow-y-auto text-xs space-y-1 pr-1">
+            {([...potholes]
+              .sort((a, b) =>
+                sortOrder === "newest"
+                  ? new Date(b.detected_at).getTime() -
+                    new Date(a.detected_at).getTime()
+                  : new Date(a.detected_at).getTime() -
+                    new Date(b.detected_at).getTime()
+              )
+            ).map((p) => (
+              <li
+                key={p.id}
+                className="bg-muted p-2 rounded font-mono"
+              >
+                {new Date(p.detected_at).toLocaleString()}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    }
+  />
+
+</div>
+
+ 
+</div>
+
           </>
         )}
       </div>
