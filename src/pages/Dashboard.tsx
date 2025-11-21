@@ -10,6 +10,7 @@ import MetricCard from "@/components/dashboard/MetricCard";
 import SpeedChart from "@/components/charts/SpeedChart";
 import EventsChart from "@/components/charts/EventsChart";
 import SafetyTrendChart from "@/components/charts/SafetyTrendChart";
+// OR wherever the file is located
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -43,14 +44,19 @@ const Dashboard = () => {
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [isStartingRide, setIsStartingRide] = useState(false);
-const [potholes, setPotholes] = useState<any[]>([]);
-const [loadingPotholes, setLoadingPotholes] = useState(false);
-const [sortOrder, setSortOrder] = useState("newest");
+  const [potholes, setPotholes] = useState<any[]>([]);
+  const [loadingPotholes, setLoadingPotholes] = useState(false);
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [rideEvents, setRideEvents] = useState<any[]>([]);
+  const [loadingRideEvents, setLoadingRideEvents] = useState(false);
+  const [eventSortOrder, setEventSortOrder] = useState("newest");
 
   const [speedData, setSpeedData] = useState<any[]>([]);
   const [eventData, setEventData] = useState<any[]>([]);
   const [trendData, setTrendData] = useState<any[]>([]);
   const [riderName, setRiderName] = useState("");
+  const [safetyIndex, setSafetyIndex] = useState<any>(null);
+  const [safetyMetrics, setSafetyMetrics] = useState<any | null>(null);
 
   const [axData, setAxData] = useState<any[]>([]);
   const [ayData, setAyData] = useState<any[]>([]);
@@ -59,6 +65,13 @@ const [sortOrder, setSortOrder] = useState("newest");
   const [gyData, setGyData] = useState<any[]>([]);
   const [gzData, setGzData] = useState<any[]>([]);
   const [gpsData, setGpsData] = useState<any[]>([]);
+  // ================================
+  const formatTime = (timestamp: string) => {
+    // Extract time directly from ISO string to avoid timezone conversion
+    // "2024-01-15T14:30:25.123456+00:00" → "14:30:25"
+    const timePart = timestamp.split("T")[1]?.split(".")[0];
+    return timePart || timestamp;
+  };
 
   useEffect(() => {
     if (!riderId) return;
@@ -213,7 +226,7 @@ const [sortOrder, setSortOrder] = useState("newest");
       }
 
       const speedData = fileData.map((r: any) => ({
-        time: new Date(r.timestamp).toLocaleTimeString(),
+        time: formatTime(r.timestamp), // ✅ CORRECT
         speed: r.gps_speed_kn ? parseFloat(r.gps_speed_kn) * 1.852 : 0,
         speedLimit: 50,
         overspeed:
@@ -221,17 +234,61 @@ const [sortOrder, setSortOrder] = useState("newest");
       }));
 
       setSpeedData(speedData);
-      setAxData(fileData.map((r) => ({ time: r.timestamp, value: parseFloat(r.ax) || 0 })));
-      setAyData(fileData.map((r) => ({ time: r.timestamp, value: parseFloat(r.ay) || 0 })));
-      setAzData(fileData.map((r) => ({ time: r.timestamp, value: parseFloat(r.az) || 0 })));
-      setGxData(fileData.map((r) => ({ time: r.timestamp, value: parseFloat(r.gx) || 0 })));
-      setGyData(fileData.map((r) => ({ time: r.timestamp, value: parseFloat(r.gy) || 0 })));
-      setGzData(fileData.map((r) => ({ time: r.timestamp, value: parseFloat(r.gz) || 0 })));
+      setAxData(
+        fileData.map((r) => ({
+          time: r.timestamp,
+          value: parseFloat(r.ax) || 0,
+        }))
+      );
+      setAyData(
+        fileData.map((r) => ({
+          time: r.timestamp,
+          value: parseFloat(r.ay) || 0,
+        }))
+      );
+      setAzData(
+        fileData.map((r) => ({
+          time: r.timestamp,
+          value: parseFloat(r.az) || 0,
+        }))
+      );
+      setGxData(
+        fileData.map((r) => ({
+          time: r.timestamp,
+          value: parseFloat(r.gx) || 0,
+        }))
+      );
+      setGyData(
+        fileData.map((r) => ({
+          time: r.timestamp,
+          value: parseFloat(r.gy) || 0,
+        }))
+      );
+      setGzData(
+        fileData.map((r) => ({
+          time: r.timestamp,
+          value: parseFloat(r.gz) || 0,
+        }))
+      );
       setEventData(processEventData(fileData));
       setTrendData(calculateSafetyTrends(fileData));
 
-      const filename = availableFiles.find((f) => f.id === fileId)?.name || "Unknown File";
+      const filename =
+        availableFiles.find((f) => f.id === fileId)?.name || "Unknown File";
       setSelectedFileName(filename);
+      // === Fetch Safety Metrics for this file ===
+      const { data: safetyRows, error: safetyError } = await supabase
+        .from("ride_safety_index")
+        .select("*")
+        .eq("rider_id", riderId)
+        .eq("file_id", fileId)
+        .single();
+
+      if (!safetyError && safetyRows) {
+        setSafetyMetrics(safetyRows);
+      } else {
+        setSafetyMetrics(null);
+      }
 
       toast({ title: "Data loaded successfully", description: filename });
     } catch (err) {
@@ -241,38 +298,84 @@ const [sortOrder, setSortOrder] = useState("newest");
       setIsLoadingData(false);
     }
   };
-useEffect(() => {
-  if (!selectedFileId || !riderId) return;
+  const fetchSafetyIndex = async (fileId: string) => {
+    const { data, error } = await supabase
+      .from("ride_safety_index")
+      .select("*")
+      .eq("rider_id", riderId)
+      .eq("file_id", fileId)
+      .single();
 
-  const fetchPotholes = async () => {
-    try {
-      setLoadingPotholes(true);
-
-      const { data, error } = await supabase
-        .from("pothole_events")
-        .select("*")
-        .eq("rider_id", riderId)
-        .eq("file_id", selectedFileId)
-        .order("detected_at", { ascending: false });
-
-      if (error) throw error;
-
-      setPotholes(data || []);
-    } catch (err) {
-      console.error("Error fetching potholes:", err);
-      toast({
-        title: "Error",
-        description: "Could not fetch pothole events.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingPotholes(false);
+    if (!error && data) {
+      setSafetyIndex(data);
+    } else {
+      setSafetyIndex(null);
     }
   };
 
-  fetchPotholes();
-}, [selectedFileId, riderId]);
+  useEffect(() => {
+    if (!selectedFileId || !riderId) return;
 
+    const fetchPotholes = async () => {
+      try {
+        setLoadingPotholes(true);
+
+        const { data, error } = await supabase
+          .from("pothole_events")
+          .select("*")
+          .eq("rider_id", riderId)
+          .eq("file_id", selectedFileId)
+          .order("detected_at", { ascending: false });
+
+        if (error) throw error;
+
+        setPotholes(data || []);
+      } catch (err) {
+        console.error("Error fetching potholes:", err);
+        toast({
+          title: "Error",
+          description: "Could not fetch pothole events.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingPotholes(false);
+      }
+    };
+
+    fetchPotholes();
+  }, [selectedFileId, riderId]);
+
+  useEffect(() => {
+    if (!selectedFileId || !riderId) return;
+
+    const fetchRideEvents = async () => {
+      try {
+        setLoadingRideEvents(true);
+
+        const { data, error } = await supabase
+          .from("ride_events")
+          .select("*")
+          .eq("rider_id", riderId)
+          .eq("file_id", selectedFileId)
+          .order("start_time", { ascending: false });
+
+        if (error) throw error;
+
+        setRideEvents(data || []);
+      } catch (err) {
+        console.error("Error fetching ride events:", err);
+        toast({
+          title: "Error",
+          description: "Could not fetch ride events.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoadingRideEvents(false);
+      }
+    };
+
+    fetchRideEvents();
+  }, [selectedFileId, riderId, eventSortOrder]);
 
   const handleStartRide = async () => {
     if (!riderId) {
@@ -332,6 +435,32 @@ useEffect(() => {
   const latestGx = recentGxData[recentGxData.length - 1]?.value || 0;
   const latestGy = recentGyData[recentGyData.length - 1]?.value || 0;
   const latestGz = recentGzData[recentGzData.length - 1]?.value || 0;
+  // ======== ACC & GYRO WINDOW SIZE LOGIC ==========
+  const WINDOW_SIZE = 100;
+
+  // indices to control which portion is visible
+  const [accelIndex, setAccelIndex] = useState(0);
+  const [gyroIndex, setGyroIndex] = useState(0);
+
+  // ACC visible window
+  const visibleAccel = axData.slice(accelIndex, accelIndex + WINDOW_SIZE);
+
+  const visibleAccelMapped = visibleAccel.map((d, i) => ({
+    time: formatTime(d.time), // ✅ NEW - USE THIS
+    ax: d.value,
+    ay: ayData[accelIndex + i]?.value ?? 0,
+    az: azData[accelIndex + i]?.value ?? 0,
+  }));
+
+  // GYRO visible window
+  const visibleGyro = gxData.slice(gyroIndex, gyroIndex + WINDOW_SIZE);
+
+  const visibleGyroMapped = visibleGyro.map((d, i) => ({
+    time: formatTime(d.time), // ✅ NEW - USE THIS
+    gx: d.value,
+    gy: gyData[gyroIndex + i]?.value ?? 0,
+    gz: gzData[gyroIndex + i]?.value ?? 0,
+  }));
 
   return (
     <div className="min-h-screen bg-background">
@@ -343,7 +472,9 @@ useEffect(() => {
               Fleet Safety Dashboard
             </h1>
             <p className="text-muted-foreground mb-2">
-              {selectedFileName ? `${riderName}: ${selectedFileName}` : `Real-time monitoring`}
+              {selectedFileName
+                ? `${riderName}: ${selectedFileName}`
+                : `Real-time monitoring`}
             </p>
             {!selectedFileName && (
               <div className="text-sm text-muted-foreground flex items-center gap-2">
@@ -363,12 +494,17 @@ useEffect(() => {
                 onValueChange={(val) => {
                   setSelectedFileId(val);
                   fetchFileData(val);
+                  fetchSafetyIndex(val); // ← ADD HERE
                 }}
                 disabled={isLoadingFiles}
               >
                 <SelectTrigger className="min-w-[220px]">
                   <SelectValue
-                    placeholder={isLoadingFiles ? "Loading files..." : "Choose file from backend"}
+                    placeholder={
+                      isLoadingFiles
+                        ? "Loading files..."
+                        : "Choose file from backend"
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
@@ -395,11 +531,16 @@ useEffect(() => {
 
         {selectedFileName && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-              {/* <SafetyGauge score={82} />
-              <EventsChart data={eventData} showPieChart />
-              <SafetyTrendChart data={trendData} /> */}
-            </div>
+            {safetyMetrics && (
+              <SafetyTrendChart
+                overall={safetyMetrics.overall_score}
+                acceleration={safetyMetrics.acceleration_score}
+                gyroscope={safetyMetrics.gyroscope_score}
+                events={safetyMetrics.event_smoothness_score}
+                potholes={safetyMetrics.pothole_score}
+                speedConsistency={safetyMetrics.speed_consistency_score}
+              />
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-6">
@@ -477,33 +618,45 @@ useEffect(() => {
                 <SpeedChart data={speedData} />
               </div> */}
             </div>
- 
             <div className="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-8">
-              <AccelerometerChart
-                data={axData.map((d, i) => ({
-                  time: new Date(d.time).toLocaleTimeString(),
-                  ax: d.value,
-                  ay: ayData[i]?.value ?? 0,
-                  az: azData[i]?.value ?? 0,
-                }))}
-                title="Accelerometer Data (AX, AY, AZ)"
-              />
-              <GyroscopeChart
-                data={gxData.map((d, i) => ({
-                  time: new Date(d.time).toLocaleTimeString(),
-                  gx: d.value,
-                  gy: gyData[i]?.value ?? 0,
-                  gz: gzData[i]?.value ?? 0,
-                }))}
-                title="Gyroscope Data (GX, GY, GZ)"
-              />
+              {/* Accelerometer with scroll */}
+              <div className="w-full">
+                <AccelerometerChart
+                  data={visibleAccelMapped}
+                  title="Accelerometer Data (AX, AY, AZ)"
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(0, axData.length - WINDOW_SIZE)}
+                  value={accelIndex}
+                  onChange={(e) => setAccelIndex(Number(e.target.value))}
+                  className="w-full mt-3"
+                />
+              </div>
+
+              {/* Gyroscope with scroll */}
+              <div className="w-full">
+                <GyroscopeChart
+                  data={visibleGyroMapped}
+                  title="Gyroscope Data (GX, GY, GZ)"
+                />
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(0, gxData.length - WINDOW_SIZE)}
+                  value={gyroIndex}
+                  onChange={(e) => setGyroIndex(Number(e.target.value))}
+                  className="w-full mt-3"
+                />
+              </div>
             </div>
             {/* <div className="space-y-6">
                 <SpeedChart data={speedData} />
               </div> */}
-              <SpeedChart1 data={speedData} />
+            <SpeedChart1 data={speedData} />
             <div className="grid grid-cols-2 gap-4">
-                  {/* <MetricCard
+              {/* <MetricCard
                     title="Swerving"
                     value={1}
                     unit="events"
@@ -512,7 +665,7 @@ useEffect(() => {
                     color="swerving"
                     description="Sharp steering maneuvers"
                   /> */}
-                  {/* <MetricCard
+              {/* <MetricCard
                     title="Night Rides"
                     value={0}
                     unit="trips"
@@ -521,96 +674,133 @@ useEffect(() => {
                     color="night"
                     description="Trips during night hours"
                   /> */}
-                  <MetricCard
-                    title="Accelerometer"
-                    value={latestAx}
-                    unit="m/s²"
-                    icon={Gauge}
-                    color="speed"
-                    description={
-                      <div>
-                        AX: {latestAx.toFixed(2)} <br />
-                        AY: {latestAy.toFixed(2)} <br />
-                        AZ: {latestAz.toFixed(2)}
-                      </div>
-                    }
-                  /> 
-                   <MetricCard
-                    title="Gyroscope"
-                    value={latestGx}
-                    unit="°/s"
-                    icon={NavIcon}
-                    color="events"
-                    description={
-                      <div>
-                        GX: {latestGx.toFixed(2)} <br />
-                        GY: {latestGy.toFixed(2)} <br />
-                        GZ: {latestGz.toFixed(2)}
-                      </div>
-                    }
-                  /> 
-                </div>
+              {/* ======== ACC & GYRO MINI SCROLL CARDS (LIGHT VERSION) ======== */}
+            </div>
             {/* <GpsChart data={gpsData} /> */}
             {/* <SpeedChart1 data={speedData} /> */}
             <div className="mt-10">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+                {/* ===================== POTHOLE EVENTS ===================== */}
+                <div className="bg-white rounded-xl shadow-md p-4 border">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-lg">Pothole Events</h2>
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-md">
+                      {potholes.length} events
+                    </span>
+                  </div>
 
-  <MetricCard
-    title="Pothole Events"
-    value={potholes.length}
-    unit="events"
-    icon={AlertTriangle}
-    color="events"
-    description={
-      <div className="space-y-2">
-        
-        {/* Sort dropdown */}
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-semibold text-foreground text-xs">Sort:</span>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value)}
-            className="bg-background border px-2 py-1 rounded text-xs"
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-          </select>
-        </div>
+                  {/* Sort dropdown */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold">Sort:</span>
 
-        {/* Condition checks */}
-        {loadingPotholes ? (
-          <p className="text-muted-foreground text-xs">Loading...</p>
-        ) : potholes.length === 0 ? (
-          <p className="text-muted-foreground text-xs">No potholes detected.</p>
-        ) : (
-          <ul className="max-h-40 overflow-y-auto text-xs space-y-1 pr-1">
-            {([...potholes]
-              .sort((a, b) =>
-                sortOrder === "newest"
-                  ? new Date(b.detected_at).getTime() -
-                    new Date(a.detected_at).getTime()
-                  : new Date(a.detected_at).getTime() -
-                    new Date(b.detected_at).getTime()
-              )
-            ).map((p) => (
-              <li
-                key={p.id}
-                className="bg-muted p-2 rounded font-mono"
-              >
-                {new Date(p.detected_at).toLocaleString()}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    }
-  />
+                    <select
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      className="bg-background border px-2 py-1 rounded text-xs"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                    </select>
+                  </div>
 
-</div>
+                  {/* Scrollable list */}
+                  <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                    {loadingPotholes ? (
+                      <p className="text-xs text-muted-foreground">
+                        Loading...
+                      </p>
+                    ) : potholes.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No potholes detected.
+                      </p>
+                    ) : (
+                      [...potholes]
+                        .sort((a, b) =>
+                          sortOrder === "newest"
+                            ? new Date(b.detected_at).getTime() -
+                              new Date(a.detected_at).getTime()
+                            : new Date(a.detected_at).getTime() -
+                              new Date(b.detected_at).getTime()
+                        )
+                        .map((p) => (
+                          <div
+                            key={p.id}
+                            className="bg-muted p-3 rounded-md border shadow-sm font-mono text-[11px]"
+                          >
+                            {/* FIXED TIMESTAMP (Supabase raw time) */}
+                            {p.detected_at.replace("T", " ").split(".")[0]}
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
 
- 
-</div>
+                {/* ===================== RIDE EVENTS ===================== */}
+                <div className="bg-white rounded-xl shadow-md p-4 border">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-lg">Ride Events</h2>
+                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-md">
+                      {rideEvents.length} events
+                    </span>
+                  </div>
 
+                  {/* Sort dropdown */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold">Sort:</span>
+                    <select
+                      value={eventSortOrder}
+                      onChange={(e) => setEventSortOrder(e.target.value)}
+                      className="bg-background border px-2 py-1 rounded text-xs"
+                    >
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                    </select>
+                  </div>
+
+                  {/* Scrollable list */}
+                  <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                    {loadingRideEvents ? (
+                      <p className="text-xs text-muted-foreground">
+                        Loading...
+                      </p>
+                    ) : rideEvents.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No ride events found.
+                      </p>
+                    ) : (
+                      [...rideEvents]
+                        .sort((a, b) =>
+                          eventSortOrder === "newest"
+                            ? new Date(b.start_time).getTime() -
+                              new Date(a.start_time).getTime()
+                            : new Date(a.start_time).getTime() -
+                              new Date(b.start_time).getTime()
+                        )
+                        .map((ev) => (
+                          <div
+                            key={ev.id}
+                            className="bg-muted p-3 rounded-md border shadow-sm"
+                          >
+                            <div className="font-semibold">{ev.event_type}</div>
+
+                            {/* FIXED TIMESTAMP (NO TIME SHIFT) */}
+                            <div className="font-mono text-[11px] text-muted-foreground">
+                              {ev.start_time.replace("T", " ").split(".")[0]} →{" "}
+                              {ev.end_time.replace("T", " ").split(".")[0]}
+                            </div>
+
+                            <div className="text-[11px] text-muted-foreground">
+                              {ev.confidence_percent}% • {ev.duration_seconds}s
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>

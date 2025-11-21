@@ -1,169 +1,169 @@
+// SafetyTrendChart.tsx
+// Location: @/components/charts/SafetyTrendChart.tsx
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Area, ComposedChart } from "recharts";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Cell,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+} from "recharts";
+import { ShieldCheck } from "lucide-react";
 
-interface TrendData {
-  date: string;
-  safetyScore: number;
-  target: number;
+type Props = {
+  overall: number;
+  acceleration: number;
+  gyroscope: number;
+  events: number;
+  potholes: number;
+  speedConsistency: number;
+};
+
+function clamp(v: any, a: number, b: number) {
+  const n = Number(v ?? 0);
+  if (Number.isNaN(n)) return a;
+  return Math.max(a, Math.min(b, n));
 }
 
-interface SafetyTrendChartProps {
-  data: TrendData[];
-  title?: string;
+// Get color based on score
+function getScoreColor(score: number) {
+  if (score >= 8) return "#22c55e"; // Green
+  if (score >= 6) return "#eab308"; // Yellow
+  if (score >= 4) return "#f97316"; // Orange
+  return "#ef4444"; // Red
 }
 
-const SafetyTrendChart = ({ data, title = "Safety Score Trend" }: SafetyTrendChartProps) => {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "hsl(var(--safety-excellent))";
-    if (score >= 60) return "hsl(var(--safety-good))";
-    if (score >= 40) return "hsl(var(--safety-warning))";
-    return "hsl(var(--safety-critical))";
-  };
+export default function SafetyTrendChart({
+  overall,
+  acceleration,
+  gyroscope,
+  events,
+  potholes,
+  speedConsistency,
+}: Props) {
+  const overallClamped = clamp(overall, 0, 10);
+  const percentage = (overallClamped / 10) * 100;
+  const scoreColor = getScoreColor(overallClamped);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const score = payload[0].value;
-      return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-card">
-          <p className="text-sm font-medium text-foreground">{`Date: ${label}`}</p>
-          <p className="text-sm" style={{ color: getScoreColor(score) }}>
-            {`Safety Score: ${score}/100`}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {`Target: ${payload[0].payload.target}/100`}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const metricList = [
+    { name: "Acceleration", value: clamp(acceleration, 0, 10) },
+    { name: "Gyroscope", value: clamp(gyroscope, 0, 10) },
+    { name: "Events", value: clamp(events, 0, 10) },
+    { name: "Potholes", value: clamp(potholes, 0, 10) },
+    { name: "Speed", value: clamp(speedConsistency, 0, 10) },
+  ];
 
-  const CustomDot = (props: any) => {
-    const { cx, cy, payload } = props;
-    const color = getScoreColor(payload.safetyScore);
-    
-    return (
-      <circle 
-        cx={cx} 
-        cy={cy} 
-        r={4} 
-        fill={color}
-        stroke="hsl(var(--background))"
-        strokeWidth={2}
-      />
-    );
-  };
+  const COLORS = ["#34d399", "#60a5fa", "#f87171", "#fbbf24", "#8b5cf6"];
 
   return (
-    <Card className="bg-card shadow-card border-0">
+    <Card className="bg-card shadow-card border-0 mb-8">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold flex items-center space-x-2">
-          <div className="w-2 h-2 bg-primary rounded-full"></div>
-          <span>{title}</span>
+        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-primary" />
+          Safety Index
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-              <defs>
-                <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.5} />
-              <XAxis 
-                dataKey="date" 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
+
+      <CardContent className="space-y-6">
+        {/* ========== OVERALL SCORE METER (FIRST) ========== */}
+        <div className="flex flex-col items-center py-4">
+          {/* Circular Gauge */}
+          <div className="relative w-40 h-40">
+            <svg className="w-full h-full transform -rotate-90">
+              {/* Background circle */}
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                fill="none"
+                stroke="#e5e7eb"
+                strokeWidth="12"
               />
-              <YAxis 
-                domain={[0, 100]}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                label={{ value: 'Safety Score', angle: -90, position: 'insideLeft' }}
+              {/* Progress circle */}
+              <circle
+                cx="80"
+                cy="80"
+                r="70"
+                fill="none"
+                stroke={scoreColor}
+                strokeWidth="12"
+                strokeLinecap="round"
+                strokeDasharray={`${percentage * 4.4} 440`}
+                className="transition-all duration-500"
               />
-              <Tooltip content={<CustomTooltip />} />
-              
-              {/* Target reference line */}
-              <ReferenceLine 
-                y={80} 
-                stroke="hsl(var(--safety-excellent))" 
-                strokeDasharray="5 5"
-                label={{ value: "Target (80)", position: "insideTopRight" }}
-              />
-              
-              {/* Warning threshold */}
-              <ReferenceLine 
-                y={60} 
-                stroke="hsl(var(--safety-warning))" 
-                strokeDasharray="3 3"
-                opacity={0.7}
-                label={{ value: "Warning (60)", position: "insideTopRight" }}
-              />
-              
-              {/* Trend area */}
-              <Area
-                dataKey="safetyScore"
-                stroke="hsl(var(--primary))"
-                fill="url(#trendGradient)"
-                strokeWidth={0}
-              />
-              
-              {/* Safety score line */}
-              <Line
-                type="monotone"
-                dataKey="safetyScore"
-                stroke="hsl(var(--primary))"
-                strokeWidth={3}
-                dot={<CustomDot />}
-                activeDot={{ r: 6, stroke: "hsl(var(--primary))", strokeWidth: 2, fill: "hsl(var(--background))" }}
-              />
-              
-              {/* Target line */}
-              <Line
-                type="monotone"
-                dataKey="target"
-                stroke="hsl(var(--muted-foreground))"
-                strokeWidth={2}
-                strokeDasharray="8 4"
-                dot={false}
-                opacity={0.6}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-        
-        {/* Score Status Indicators */}
-        <div className="flex justify-between items-center mt-4 p-3 bg-muted/30 rounded-lg">
-          <div className="flex items-center space-x-4 text-sm">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-safety-excellent rounded-full"></div>
-              <span className="text-muted-foreground">Excellent (80+)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-safety-good rounded-full"></div>
-              <span className="text-muted-foreground">Good (60-80)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-safety-warning rounded-full"></div>
-              <span className="text-muted-foreground">Warning (40-60)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-safety-critical rounded-full"></div>
-              <span className="text-muted-foreground">Critical (&lt;40)</span>
+            </svg>
+            {/* Score text in center */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-bold" style={{ color: scoreColor }}>
+                {overallClamped.toFixed(1)}
+              </span>
+              <span className="text-sm text-muted-foreground">/10</span>
             </div>
           </div>
+          
+          {/* Label */}
+          <div className="mt-3 text-center">
+            <div className="font-semibold text-lg">Overall Safety Score</div>
+            <div className="text-sm text-muted-foreground">
+              {overallClamped >= 8 ? "Excellent" : 
+               overallClamped >= 6 ? "Good" : 
+               overallClamped >= 4 ? "Needs Improvement" : "Poor"}
+            </div>
+          </div>
+        </div>
+
+        {/* ========== BAR CHART ========== */}
+        <div className="h-56">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={metricList}>
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis domain={[0, 10]} />
+              <Tooltip formatter={(value: any) => `${value}/10`} />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                {metricList.map((item, idx) => (
+                  <Cell key={item.name} fill={COLORS[idx]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* ========== RADAR CHART ========== */}
+        <div className="h-44 mt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={metricList}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="name" />
+              <Radar
+                name="Score"
+                dataKey="value"
+                stroke="#3b82f6"
+                fill="#3b82f6"
+                fillOpacity={0.35}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* ========== INDIVIDUAL METRICS ========== */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2">
+          {metricList.map((item, idx) => (
+            <div key={item.name} className="text-center p-2 bg-muted/30 rounded-lg">
+              <div className="text-lg font-bold" style={{ color: COLORS[idx] }}>
+                {item.value.toFixed(1)}
+              </div>
+              <div className="text-xs text-muted-foreground">{item.name}</div>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
   );
-};
-
-export default SafetyTrendChart;
+}

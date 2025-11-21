@@ -13,14 +13,19 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
+
       <Sonner />
       <BrowserRouter basename="/Safety-index">
         <Routes>
           <Route path="/" element={<RiderSelection />} />
+
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/reports" element={<Reports />} />
+
           <Route path="/realtime-command" element={<RealtimeCommand />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          {/*
+          
+          ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
