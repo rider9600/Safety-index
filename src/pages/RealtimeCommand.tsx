@@ -446,73 +446,7 @@ const RealtimeCommand = () => {
           </Button>
         </CardContent>
       </Card>
-
-      {/* SENSOR GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
-        {/* IMU */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5" /> IMU Data
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4">
-              {["ax", "ay", "az"].map((axis) => (
-                <div key={axis} className="bg-muted p-4 rounded-md">
-                  <div className="text-xs text-muted-foreground">{axis}</div>
-                  <div className="text-2xl font-mono font-bold">
-                    {imuData[axis as keyof typeof imuData].toFixed(3)}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-3 gap-4 mt-4">
-              {["gx", "gy", "gz"].map((axis) => (
-                <div key={axis} className="bg-muted p-4 rounded-md">
-                  <div className="text-xs text-muted-foreground">{axis}</div>
-                  <div className="text-2xl font-mono font-bold">
-                    {imuData[axis as keyof typeof imuData].toFixed(3)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* GPS */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Navigation className="w-5 h-5" /> GPS Data
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-muted p-4 rounded-md">
-                <div className="text-xs">Latitude</div>
-                <div className="text-xl font-mono font-bold">
-                  {gpsData.latitude?.toFixed(6) ?? "N/A"}
-                </div>
-              </div>
-              <div className="bg-muted p-4 rounded-md">
-                <div className="text-xs">Longitude</div>
-                <div className="text-xl font-mono font-bold">
-                  {gpsData.longitude?.toFixed(6) ?? "N/A"}
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-muted p-4 rounded-md">
-              <div className="text-xs">Speed (km/h)</div>
-              <div className="text-3xl font-mono font-bold text-center">
-                {gpsData.speed.toFixed(1)}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* POTHOLES */}
         <Card>
@@ -591,6 +525,73 @@ const RealtimeCommand = () => {
           </CardContent>
         </Card>
       </div>
+      {/* SENSOR GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+        {/* IMU */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" /> IMU Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4">
+              {["ax", "ay", "az"].map((axis) => (
+                <div key={axis} className="bg-muted p-4 rounded-md">
+                  <div className="text-xs text-muted-foreground">{axis}</div>
+                  <div className="text-2xl font-mono font-bold">
+                    {imuData[axis as keyof typeof imuData].toFixed(3)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-4 mt-4">
+              {["gx", "gy", "gz"].map((axis) => (
+                <div key={axis} className="bg-muted p-4 rounded-md">
+                  <div className="text-xs text-muted-foreground">{axis}</div>
+                  <div className="text-2xl font-mono font-bold">
+                    {imuData[axis as keyof typeof imuData].toFixed(3)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* GPS */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Navigation className="w-5 h-5" /> GPS Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="bg-muted p-4 rounded-md">
+                <div className="text-xs">Latitude</div>
+                <div className="text-xl font-mono font-bold">
+                  {gpsData.latitude?.toFixed(6) ?? "N/A"}
+                </div>
+              </div>
+              <div className="bg-muted p-4 rounded-md">
+                <div className="text-xs">Longitude</div>
+                <div className="text-xl font-mono font-bold">
+                  {gpsData.longitude?.toFixed(6) ?? "N/A"}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-muted p-4 rounded-md">
+              <div className="text-xs">Speed (km/h)</div>
+              <div className="text-3xl font-mono font-bold text-center">
+                {gpsData.speed.toFixed(1)}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      
     </div>
   );
 };
