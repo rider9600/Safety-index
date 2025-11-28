@@ -100,14 +100,7 @@ const RealtimeCommand = () => {
       if (data) {
         console.log("✅ Latest file_id found:", data.id);
         setFileId(data.id);
-        // 🔥 Refresh only once per rider to clear stale data
-const alreadyRefreshedFor = sessionStorage.getItem("realtimeRefreshedFor");
-
-if (alreadyRefreshedFor !== riderId) {
-  sessionStorage.setItem("realtimeRefreshedFor", riderId);
-  console.log("♻️ Refreshing once for new ride...");
-  window.location.reload();
-}
+        
 
       } else {
         console.warn("⚠️ No file found for rider");
