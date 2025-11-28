@@ -21,6 +21,8 @@ import {
 import { supabase } from "@/lib/supabase";
 
 const RealtimeCommand = () => {
+ 
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const riderId = searchParams.get("riderId");
@@ -31,7 +33,7 @@ const RealtimeCommand = () => {
 
   const [isActive, setIsActive] = useState(true);
   const [isStopping, setIsStopping] = useState(false);
-
+  
   // ✅ ADDED: State to store file_id fetched from database
   const [fileId, setFileId] = useState<string | null>(null);
   const [isLoadingFileId, setIsLoadingFileId] = useState(true);
@@ -98,16 +100,15 @@ const RealtimeCommand = () => {
       if (data) {
         console.log("✅ Latest file_id found:", data.id);
         setFileId(data.id);
-        useEffect(() => {
-          const hasRefreshed = sessionStorage.getItem("realtimeRefreshed");
+        // 🔥 Refresh only once per rider to clear stale data
+const alreadyRefreshedFor = sessionStorage.getItem("realtimeRefreshedFor");
 
-          if (!hasRefreshed) {
-            sessionStorage.setItem("realtimeRefreshed", "true");
-            window.location.reload();
-          } else {
-            sessionStorage.removeItem("realtimeRefreshed");
-          }
-        }, []);
+if (alreadyRefreshedFor !== riderId) {
+  sessionStorage.setItem("realtimeRefreshedFor", riderId);
+  console.log("♻️ Refreshing once for new ride...");
+  window.location.reload();
+}
+
       } else {
         console.warn("⚠️ No file found for rider");
       }
@@ -270,12 +271,7 @@ const RealtimeCommand = () => {
       setLoadingEvents(true);
 
       // ✅ ADDED: Debug log
-      console.log(
-        "🎯 Fetching ride events for rider:",
-        riderId,
-        "file:",
-        fileId
-      );
+      console.log("🎯 Fetching ride events for rider:", riderId, "file:", fileId);
 
       const { data, error } = await supabase
         .from("ride_events")
@@ -461,7 +457,7 @@ const RealtimeCommand = () => {
           </Button>
         </CardContent>
       </Card>
-
+      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* POTHOLES */}
         <Card>
@@ -477,19 +473,22 @@ const RealtimeCommand = () => {
               <p>No potholes detected.</p>
             ) : (
               <ul className="space-y-3">
-                {potholes.slice(0, 5).map((p) => (
-                  <li
-                    key={p.id}
-                    className="p-3 bg-muted rounded-md flex justify-between"
-                  >
-                    <div className="font-mono">
-                      {p.detected_at.replace("T", " ").split(".")[0]}
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {p.id.slice(0, 8)}
-                    </span>
-                  </li>
-                ))}
+                {potholes
+                  .slice(0, 5)
+                  .map((p) => (
+                    <li
+                      key={p.id}
+                      className="p-3 bg-muted rounded-md flex justify-between"
+                    >
+                      <div className="font-mono">
+                       {p.detected_at.replace("T", " ").split(".")[0]}
+
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {p.id.slice(0, 8)}
+                      </span>
+                    </li>
+                  ))}
               </ul>
             )}
           </CardContent>
@@ -509,27 +508,29 @@ const RealtimeCommand = () => {
               <p>No ride events detected.</p>
             ) : (
               <ul className="space-y-3">
-                {events.slice(0, 5).map((ev) => (
-                  <li
-                    key={ev.id}
-                    className="p-3 bg-muted rounded-md flex justify-between"
-                  >
-                    <div>
-                      <div className="font-semibold">{ev.event_type}</div>
-                      <div className="text-xs">
-                        {ev.start_time.replace("T", " ").split(".")[0]} →{" "}
-                        {ev.end_time.replace("T", " ").split(".")[0]}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {ev.confidence_percent}% – {ev.duration_seconds}s
-                      </div>
-                    </div>
+                {events
+                  .slice(0, 5)
+                  .map((ev) => (
+                    <li
+                      key={ev.id}
+                      className="p-3 bg-muted rounded-md flex justify-between"
+                    >
+                      <div>
+                        <div className="font-semibold">{ev.event_type}</div>
+                        <div className="text-xs">
+                          {ev.start_time.replace("T", " ").split(".")[0]} → {ev.end_time.replace("T", " ").split(".")[0]}
 
-                    <span className="text-xs text-muted-foreground">
-                      {ev.id.slice(0, 8)}
-                    </span>
-                  </li>
-                ))}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {ev.confidence_percent}% – {ev.duration_seconds}s
+                        </div>
+                      </div>
+
+                      <span className="text-xs text-muted-foreground">
+                        {ev.id.slice(0, 8)}
+                      </span>
+                    </li>
+                  ))}
               </ul>
             )}
           </CardContent>
@@ -600,6 +601,8 @@ const RealtimeCommand = () => {
           </CardContent>
         </Card>
       </div>
+
+      
     </div>
   );
 };
