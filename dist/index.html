@@ -15,6 +15,14 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <script>
+  const redirect = sessionStorage.redirect;
+  delete sessionStorage.redirect;
+  if (redirect && redirect !== window.location.href) {
+    history.replaceState(null, null, redirect);
+  }
+</script>
+
     <script type="module" crossorigin src="/Safety-index/assets/index-6FREB2y5.js"></script>
     <link rel="stylesheet" crossorigin href="/Safety-index/assets/index-BW6ZS2eK.css">
   </head>

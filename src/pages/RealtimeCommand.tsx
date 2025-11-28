@@ -21,6 +21,17 @@ import {
 import { supabase } from "@/lib/supabase";
 
 const RealtimeCommand = () => {
+  useEffect(() => {
+  const hasRefreshed = sessionStorage.getItem("realtimeRefreshed");
+
+  if (!hasRefreshed) {
+    sessionStorage.setItem("realtimeRefreshed", "true");
+    window.location.reload();
+  } else {
+    sessionStorage.removeItem("realtimeRefreshed");
+  }
+}, []);
+
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const riderId = searchParams.get("riderId");
